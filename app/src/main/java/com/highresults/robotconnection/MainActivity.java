@@ -62,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
         private void sendData(byte[] data) throws IOException {
             Socket socket = this.mSocket;
             if(mServer == null){
-                errorText.post(() -> errorText.setText("Connection wasn't created. Restart app"));
+                errorText.post(() -> errorText.setText("Connection wasn't created. Try again"));
                 Log.e(TAG, "Connection wasn't created. Restart app");
             }
             if (socket == null || socket.isClosed()) {
@@ -143,7 +143,7 @@ public class MainActivity extends AppCompatActivity {
         connectButton.setOnClickListener(V -> startConnection());
         firstServo.setOnSeekBarChangeListener(new SeekBarChangeListener(22));
         secondServo.setOnSeekBarChangeListener(new SeekBarChangeListener(33));
-        this.mJoystick.setOnTouchListener(new JoistickOnTouchListener());
+        mJoystick.setOnTouchListener(new JoistickOnTouchListener());
     }
 
      class JoistickOnTouchListener implements View.OnTouchListener {
