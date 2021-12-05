@@ -1,3 +1,8 @@
 <resources>
-    <string name="app_name">My Application</string>
+    <string name="app_name">Robot Connection</string>
+    <string name="connect">connect</string>
+    <string name="something_useful">something useful</string>
+    <string name="forward">forward:</string>
+    <string name="side">side:</string>
+    <string name="error_message">error message</string>
 </resources>

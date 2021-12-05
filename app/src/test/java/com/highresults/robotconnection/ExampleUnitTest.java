@@ -1,4 +1,4 @@
-package com.highresults.myapplication;
+package com.highresults.robotconnection;
 
 import org.junit.Test;
 

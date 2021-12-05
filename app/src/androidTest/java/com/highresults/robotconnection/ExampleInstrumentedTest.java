@@ -1,4 +1,4 @@
-package com.highresults.myapplication;
+package com.highresults.robotconnection;
 
 import android.content.Context;
 
@@ -21,6 +21,6 @@ public class ExampleInstrumentedTest {
     public void useAppContext() {
         // Context of the app under test.
         Context appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        assertEquals("com.highresults.myapplication", appContext.getPackageName());
+        assertEquals("com.highresults.robotconnection", appContext.getPackageName());
     }
 }
