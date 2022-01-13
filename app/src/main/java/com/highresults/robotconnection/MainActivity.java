@@ -1,8 +1,8 @@
 package com.highresults.robotconnection;
 
+import android.annotation.SuppressLint;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
@@ -11,83 +11,21 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import java.io.IOException;
-import java.net.Socket;
-
 public class MainActivity extends AppCompatActivity {
-    private static final String TAG = "Server Name";
-
-    private static WifiServer mServer;
     private Button connectButton;
-    private TextView errorText;
     private SeekBar firstServo;
     private Joystick mJoystick;
     private SeekBar secondServo;
     private TextView textForward;
     private TextView textSide;
+    private TextView errorText;
+    private WifiServer mServer;
+
     //array for data
-    //if first byte -1 then data for joystic(second and third for x and y data, fourth for checkSum)
-    //if first byte 11 and second 22 then third for first servo data, fourth for checkSum
-    //if first byte 11 and second 33 then third for second servo data, fourth for checkSum
+    //if first byte 0xFF then data for joystic(second and third for x and y data, fourth for checkSum)
+    //if first byte 0x11 and second 0x22 then third for first servo data, fourth for checkSum
+    //if first byte 0x11 and second 33 then third for second servo data, fourth for checkSum
     byte[] message = new byte[4];
-
-    public class WifiServer {
-        private final static String ipAddress = "192.168.4.1";
-        private Socket mSocket = null;
-        private final static int port = 5555;
-
-        public WifiServer() {
-        }
-
-        private void openConnection() {
-            closeConnection();
-            try {
-                this.mSocket = new Socket(ipAddress, port);
-            } catch (IOException err) {
-                errorText.post(() -> errorText.setText("unavailable to create socket. Live with it "));
-                Log.e(TAG, "unavailable to create socket. Live with it : " + err.getMessage());
-            }
-        }
-
-        private void closeConnection() {
-            if (mSocket != null && !mSocket.isClosed()) {
-                try (Socket ignored = mSocket) {
-                } catch (IOException err) {
-                    errorText.post(() -> errorText.setText("unavailable to close socket: "));
-                    Log.e(TAG, "unavailable to close socket: " + err.getMessage());
-                }
-            }
-        }
-
-        private void sendData(byte[] data) throws IOException {
-            Socket socket = this.mSocket;
-            if(mServer == null){
-                errorText.post(() -> errorText.setText("Connection wasn't created. Try again"));
-                Log.e(TAG, "Connection wasn't created. Restart app");
-            }
-            if (socket == null || socket.isClosed()) {
-                errorText.post(() -> errorText.setText("unavailable to send data. The socket is closed or wasn't created.Live with it"));
-                Log.e(TAG, "unavailable to send data. The socket is closed or wasn't created.Live with it: ");
-            } else {
-                try {
-                    socket.getOutputStream().write(data[0]);
-                    socket.getOutputStream().flush();
-                } catch (IOException err) {
-                    errorText.post(() -> errorText.setText("unavailable to send data.Live with it"));
-                    Log.e(TAG, "unavailable to send data.");
-                    throw err;
-                }
-                socket.getOutputStream().write(data);
-                socket.getOutputStream().flush();
-            }
-        }
-
-        @Override
-        protected void finalize() throws Throwable {
-            super.finalize();
-            closeConnection();
-        }
-    }
 
     //classical crc8
     private byte calculateChecksum(byte[] array) {
@@ -107,21 +45,6 @@ public class MainActivity extends AppCompatActivity {
         return byteWord;
     }
 
-    private void startConnection() {
-        mServer = new WifiServer();
-        new Thread(() -> {
-            try {
-                mServer.openConnection();
-                errorText.post(() -> errorText.setText("Connection successful"));
-                Log.d(TAG, "Connection successful");
-            } catch (Exception err) {
-                errorText.post(() -> errorText.setText("Connection wasn't created. Live with it"));
-                Log.e(TAG, err.getMessage());
-                mServer = null;
-            }
-        }).start();
-    }
-
     public void initVariables() {
         firstServo = findViewById(R.id.firstServo);
         secondServo = findViewById(R.id.secondServo);
@@ -131,22 +54,26 @@ public class MainActivity extends AppCompatActivity {
         connectButton = findViewById(R.id.connectButton);
         message[0] = -1;
         mJoystick = findViewById(R.id.Joystick);
-        startConnection();
+        mServer = new WifiServer(errorText);
+        mServer.startConnection();
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         initVariables();
-        connectButton.setOnClickListener(V -> startConnection());
-        firstServo.setOnSeekBarChangeListener(new SeekBarChangeListener(22));
-        secondServo.setOnSeekBarChangeListener(new SeekBarChangeListener(33));
-        mJoystick.setOnTouchListener(new JoistickOnTouchListener());
+        connectButton.setOnClickListener(V -> mServer.startConnection());
+        firstServo.setOnSeekBarChangeListener(new SeekBarChangeListener(0x22));
+        secondServo.setOnSeekBarChangeListener(new SeekBarChangeListener(0x33));
+        mJoystick.setOnTouchListener(new JoystickOnTouchListener());
     }
 
-     class JoistickOnTouchListener implements View.OnTouchListener {
+    class JoystickOnTouchListener implements View.OnTouchListener {
+
+        @SuppressLint("ClickableViewAccessibility")
         public boolean onTouch(View V, MotionEvent mEvent) {
             mJoystick.x = (int) mEvent.getX();
             mJoystick.y = (int) mEvent.getY();
@@ -155,21 +82,20 @@ public class MainActivity extends AppCompatActivity {
                 case MotionEvent.ACTION_DOWN:
                     mJoystick.x0 = (int) mEvent.getX();
                     mJoystick.y0 = (int) mEvent.getY();
-                    textSide.setText("side: 0");
-                    textForward.setText("forward: 0");
+                    textSide.setText(R.string.side);
+                    textForward.setText(R.string.forward);
                     mJoystick.cleanCanvasFlag = false;
                     break;
-                    //take the finger off the screen
+                //take the finger off the screen
                 case MotionEvent.ACTION_UP:
                     message[1] = 0;
                     message[2] = 0;
                     message[3] = calculateChecksum(message);
-                    try {
-                        //send that we finish send data about moving robot
-                        mServer.sendData(message);
-                    } catch (Exception err) {
-                        Log.e(TAG, err.getMessage());
+                    //send that we finish send data about moving robot
+                    if (mServer == null) {
+                        errorText.post(() -> errorText.setText(R.string.error_conn));
                     }
+                    mServer.sendData(message);
                     mJoystick.cleanCanvasFlag = true;
                     break;
                 case MotionEvent.ACTION_MOVE:
@@ -190,14 +116,9 @@ public class MainActivity extends AppCompatActivity {
                     message[1] = (byte) (shiftX / 4);
                     message[2] = (byte) (shiftY / 4);
                     message[3] = calculateChecksum(message);
-                    textSide.setText("side: " + message[1]);
-                    textForward.setText("forward: " + message[2]);
-                    try {
-                        mServer.sendData(message);
-                    } catch (Exception err2) {
-                        Log.e(TAG, err2.getMessage());
-                        break;
-                    }
+                    textSide.setText(String.format(getString(R.string.sideVal), message[1]));
+                    textForward.setText(String.format(getString(R.string.forwardVal), message[2]));
+                    mServer.sendData(message);
                     break;
             }
             mJoystick.invalidate();
@@ -205,7 +126,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-     class SeekBarChangeListener implements SeekBar.OnSeekBarChangeListener {
+    class SeekBarChangeListener implements SeekBar.OnSeekBarChangeListener {
 
         private final int secondByte;
 
@@ -217,16 +138,12 @@ public class MainActivity extends AppCompatActivity {
         public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
             message[2] = (byte) progress;
             message[3] = calculateChecksum(message);
-            try {
-                mServer.sendData(message);
-            } catch (Exception err) {
-                Log.e(TAG, err.getMessage());
-            }
+            mServer.sendData(message);
         }
 
         @Override
         public void onStartTrackingTouch(SeekBar seekBar) {
-            message[0] = 11;
+            message[0] = 0x11;
             message[1] = (byte) secondByte;
         }
 

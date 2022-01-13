@@ -2,7 +2,15 @@
     <string name="app_name">Robot Connection</string>
     <string name="connect">connect</string>
     <string name="something_useful">something useful</string>
+    <string name="forwardVal">"forward: %d"</string>
     <string name="forward">forward:</string>
+    <string name="sideVal">"side: %d"</string>
     <string name="side">side:</string>
     <string name="error_message">error message</string>
+    <string name="error_create_socket">"unavailable to create socket. Live with it "</string>
+    <string name="error_close_socket">"unavailable to close socket. Live with it "</string>
+    <string name="succes_conn">"Connection successful"</string>
+    <string name="error_conn">"Connection wasn't created. Try again"</string>
+    <string name="error_send_soc_close">"unavailable to send data. The socket is closed or wasn't created.Live with it"</string>
+    <string name="error_send">"unavailable to send data.Live with it"</string>
 </resources>
